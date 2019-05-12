@@ -3,6 +3,7 @@
 * -std=c++17
 * I did not create these codes - not a single tutorial had working version, so I combined them and I was experimenting with it.
 * MS docs have 2 months old revision, still their code can not be build.
+* **Do NOT use this code in your production application!!!** - this project is for learning purposes
 
 ## How to debug service
 * In this very moment, there is no easy way to debug service from Visual Studio 2017.
