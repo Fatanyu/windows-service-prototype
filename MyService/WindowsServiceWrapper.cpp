@@ -7,9 +7,9 @@ WindowsServiceWrapper::WindowsServiceWrapper()
 {
 }
 
-
 WindowsServiceWrapper::~WindowsServiceWrapper()
 {
+	WindowsServiceWrapper::s_singletonInstance = nullptr;
 }
 
 DWORD WindowsServiceWrapper::start()
@@ -23,27 +23,29 @@ DWORD WindowsServiceWrapper::start()
 	return 0;
 }
 
+
+
 void WINAPI WindowsServiceWrapper::serviceMain(DWORD argc, LPTSTR * argv)
 {
 	// Register our service control handler with the SCM
-	s_statusHandle = RegisterServiceCtrlHandler(s_serviceName, serviceCtrlHandler);
+	m_statusHandle = RegisterServiceCtrlHandler(s_serviceName, staticServiceCtrlHandler);
 
-	if (s_statusHandle == NULL)
+	if (m_statusHandle == nullptr)
 	{
 		//goto EXIT;
 		return;
 	}
 
 	// Tell the service controller we are starting
-	ZeroMemory(&s_serviceStatus, sizeof(s_serviceStatus));
-	s_serviceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
-	s_serviceStatus.dwControlsAccepted = 0;
-	s_serviceStatus.dwCurrentState = SERVICE_START_PENDING;
-	s_serviceStatus.dwWin32ExitCode = 0;
-	s_serviceStatus.dwServiceSpecificExitCode = 0;
-	s_serviceStatus.dwCheckPoint = 0;
+	SecureZeroMemory(&m_serviceStatus, sizeof(m_serviceStatus));
+	m_serviceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+	m_serviceStatus.dwControlsAccepted = 0;
+	m_serviceStatus.dwCurrentState = SERVICE_START_PENDING;
+	m_serviceStatus.dwWin32ExitCode = 0;
+	m_serviceStatus.dwServiceSpecificExitCode = 0;
+	m_serviceStatus.dwCheckPoint = 0;
 
-	if (SetServiceStatus(s_statusHandle, &s_serviceStatus) == FALSE)
+	if (SetServiceStatus(m_statusHandle, &m_serviceStatus) == false)
 	{
 		OutputDebugString(_T(
 			"My Sample Service: ServiceMain: SetServiceStatus returned error"));
@@ -59,12 +61,12 @@ void WINAPI WindowsServiceWrapper::serviceMain(DWORD argc, LPTSTR * argv)
 	{
 		// Error creating event
 		// Tell service controller we are stopped and exit
-		s_serviceStatus.dwControlsAccepted = 0;
-		s_serviceStatus.dwCurrentState = SERVICE_STOPPED;
-		s_serviceStatus.dwWin32ExitCode = GetLastError();
-		s_serviceStatus.dwCheckPoint = 1;
+		m_serviceStatus.dwControlsAccepted = 0;
+		m_serviceStatus.dwCurrentState = SERVICE_STOPPED;
+		m_serviceStatus.dwWin32ExitCode = GetLastError();
+		m_serviceStatus.dwCheckPoint = 1;
 
-		if (SetServiceStatus(s_statusHandle, &s_serviceStatus) == FALSE)
+		if (SetServiceStatus(m_statusHandle, &m_serviceStatus) == false)
 		{
 			OutputDebugString(_T(
 				"My Sample Service: ServiceMain: SetServiceStatus returned error"));
@@ -73,19 +75,19 @@ void WINAPI WindowsServiceWrapper::serviceMain(DWORD argc, LPTSTR * argv)
 	}
 
 	// Tell the service controller we are started
-	s_serviceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
-	s_serviceStatus.dwCurrentState = SERVICE_RUNNING;
-	s_serviceStatus.dwWin32ExitCode = 0;
-	s_serviceStatus.dwCheckPoint = 0;
+	m_serviceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
+	m_serviceStatus.dwCurrentState = SERVICE_RUNNING;
+	m_serviceStatus.dwWin32ExitCode = 0;
+	m_serviceStatus.dwCheckPoint = 0;
 
-	if (SetServiceStatus(s_statusHandle, &s_serviceStatus) == FALSE)
+	if (SetServiceStatus(m_statusHandle, &m_serviceStatus) == false)
 	{
 		OutputDebugString(_T(
 			"My Sample Service: ServiceMain: SetServiceStatus returned error"));
 	}
 
 	// Start a thread that will perform the main task of the service
-	HANDLE hThread = CreateThread(NULL, 0, WindowsServiceWrapper::serviceWorkerThread, NULL, 0, NULL);
+	HANDLE hThread = CreateThread(NULL, 0, WindowsServiceWrapper::staticServiceWorkerThread, NULL, 0, NULL);
 
 	// Wait until our worker thread exits signaling that the service needs to stop
 	WaitForSingleObject(hThread, INFINITE);
@@ -98,12 +100,12 @@ void WINAPI WindowsServiceWrapper::serviceMain(DWORD argc, LPTSTR * argv)
 	CloseHandle(s_serviceStopEvent);
 
 	// Tell the service controller we are stopped
-	s_serviceStatus.dwControlsAccepted = 0;
-	s_serviceStatus.dwCurrentState = SERVICE_STOPPED;
-	s_serviceStatus.dwWin32ExitCode = 0;
-	s_serviceStatus.dwCheckPoint = 3;
+	m_serviceStatus.dwControlsAccepted = 0;
+	m_serviceStatus.dwCurrentState = SERVICE_STOPPED;
+	m_serviceStatus.dwWin32ExitCode = 0;
+	m_serviceStatus.dwCheckPoint = 3;
 
-	if (SetServiceStatus(s_statusHandle, &s_serviceStatus) == FALSE)
+	if (SetServiceStatus(m_statusHandle, &m_serviceStatus) == false)
 	{
 		OutputDebugString(_T(
 			"My Sample Service: ServiceMain: SetServiceStatus returned error"));
@@ -119,19 +121,19 @@ void WINAPI WindowsServiceWrapper::serviceCtrlHandler(DWORD CtrlCode)
 	{
 	case SERVICE_CONTROL_STOP:
 
-		if (s_serviceStatus.dwCurrentState != SERVICE_RUNNING)
+		if (m_serviceStatus.dwCurrentState != SERVICE_RUNNING)
 			break;
 
 		/*
 		 * Perform tasks necessary to stop the service here
 		 */
 
-		s_serviceStatus.dwControlsAccepted = 0;
-		s_serviceStatus.dwCurrentState = SERVICE_STOP_PENDING;
-		s_serviceStatus.dwWin32ExitCode = 0;
-		s_serviceStatus.dwCheckPoint = 4;
+		m_serviceStatus.dwControlsAccepted = 0;
+		m_serviceStatus.dwCurrentState = SERVICE_STOP_PENDING;
+		m_serviceStatus.dwWin32ExitCode = 0;
+		m_serviceStatus.dwCheckPoint = 4;
 
-		if (SetServiceStatus(s_statusHandle, &s_serviceStatus) == FALSE)
+		if (SetServiceStatus(m_statusHandle, &m_serviceStatus) == false)
 		{
 			OutputDebugString(_T(
 				"My Sample Service: ServiceCtrlHandler: SetServiceStatus returned error"));
@@ -161,4 +163,32 @@ DWORD WINAPI WindowsServiceWrapper::serviceWorkerThread(LPVOID lpParam)
 	}
 
 	return ERROR_SUCCESS;
+}
+
+
+//
+// static methods
+//
+void WINAPI WindowsServiceWrapper::staticServiceMain(DWORD argc, LPTSTR * argv)
+{
+	WindowsServiceWrapper::getInstance()->serviceMain(argc, argv);
+}
+
+void WINAPI WindowsServiceWrapper::staticServiceCtrlHandler(DWORD CtrlCode)
+{
+	WindowsServiceWrapper::getInstance()->serviceCtrlHandler(CtrlCode);
+}
+
+DWORD WINAPI WindowsServiceWrapper::staticServiceWorkerThread(LPVOID lpParam)
+{
+	return (WindowsServiceWrapper::getInstance()->serviceWorkerThread(lpParam));
+}
+
+WindowsServiceWrapper* WindowsServiceWrapper::getInstance()
+{
+	if (WindowsServiceWrapper::s_singletonInstance == nullptr)
+	{
+		WindowsServiceWrapper::s_singletonInstance = new WindowsServiceWrapper();
+	}
+	return WindowsServiceWrapper::s_singletonInstance;
 }

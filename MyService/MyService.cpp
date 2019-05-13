@@ -18,9 +18,8 @@
  */
 int _tmain(int argc, TCHAR *argv[])
 {
-	WindowsServiceWrapper* windowsService = new WindowsServiceWrapper();
+	WindowsServiceWrapper* windowsService = WindowsServiceWrapper::getInstance();
 	auto result = windowsService->start();
-	delete windowsService;
 	return result;
 }
 
