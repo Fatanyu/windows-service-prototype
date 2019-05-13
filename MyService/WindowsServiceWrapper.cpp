@@ -32,7 +32,6 @@ void WINAPI WindowsServiceWrapper::serviceMain(DWORD argc, LPTSTR * argv)
 
 	if (m_statusHandle == nullptr)
 	{
-		//goto EXIT;
 		return;
 	}
 
@@ -57,7 +56,7 @@ void WINAPI WindowsServiceWrapper::serviceMain(DWORD argc, LPTSTR * argv)
 
 	 // Create a service stop event to wait on later
 	s_serviceStopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-	if (s_serviceStopEvent == NULL)
+	if (s_serviceStopEvent == nullptr)
 	{
 		// Error creating event
 		// Tell service controller we are stopped and exit
@@ -87,11 +86,12 @@ void WINAPI WindowsServiceWrapper::serviceMain(DWORD argc, LPTSTR * argv)
 	}
 
 	// Start a thread that will perform the main task of the service
-	HANDLE hThread = CreateThread(NULL, 0, WindowsServiceWrapper::staticServiceWorkerThread, NULL, 0, NULL);
+	//HANDLE hThread = CreateThread(NULL, 0, WindowsServiceWrapper::staticServiceWorkerThread, NULL, 0, NULL);
 
+	std::thread workerThread(&WindowsServiceWrapper::serviceWorkerThread, this, nullptr);
 	// Wait until our worker thread exits signaling that the service needs to stop
-	WaitForSingleObject(hThread, INFINITE);
-
+	//WaitForSingleObject(hThread, INFINITE);
+	workerThread.join();
 
 	/*
 	 * Perform any cleanup tasks

@@ -1,6 +1,7 @@
 #pragma once
 #include <Windows.h>
 #include <Tchar.h> // for _T macro
+#include <thread>
 
 #include "IServiceWrapper.h"
 
@@ -34,7 +35,9 @@ private:
 	void WINAPI serviceCtrlHandler(DWORD CtrlCode);
 	DWORD WINAPI serviceWorkerThread(LPVOID lpParam);
 	
-	WindowsServiceWrapper(); 
+	WindowsServiceWrapper();
+
+
 public:
 
 	~WindowsServiceWrapper();
