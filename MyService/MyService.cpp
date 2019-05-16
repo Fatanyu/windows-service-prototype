@@ -18,7 +18,7 @@
  */
 int _tmain(int argc, TCHAR *argv[])
 {
-	WindowsServiceWrapper* windowsService = WindowsServiceWrapper::getInstance();
+	IServiceWrapper* windowsService = (IServiceWrapper*) WindowsServiceWrapper::getInstance();
 	auto result = windowsService->start();
 	return result;
 }

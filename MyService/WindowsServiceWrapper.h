@@ -4,6 +4,7 @@
 #include <thread>
 
 #include "IServiceWrapper.h"
+#include "ServiceControlManagerWrapper.h"
 
 class WindowsServiceWrapper : public IServiceWrapper
 {
@@ -16,9 +17,11 @@ private:
 	inline static HANDLE s_serviceStopEvent = INVALID_HANDLE_VALUE;
 	inline static WindowsServiceWrapper* s_singletonInstance = nullptr;
 
-
 	//original definition was like #define serviceName "ServiceName"
 	inline static wchar_t s_serviceName[1024] = _T("MyService"); //there were errors with size < 1024 (TODO confirm error with lower length)
+
+	ServiceControlManagerWrapper* m_serviceControlManagementWrapper;
+
 
 	// macro which defines const array
 	SERVICE_TABLE_ENTRY m_serviceTable[2] =
@@ -27,18 +30,18 @@ private:
 		{nullptr, nullptr}
 	};
 
+private:
+	WindowsServiceWrapper();
+
 	static void WINAPI staticServiceMain(DWORD argc, LPTSTR *argv);
-	static void WINAPI staticServiceCtrlHandler(DWORD CtrlCode);
 	static DWORD WINAPI staticServiceWorkerThread(LPVOID lpParam);
 
 	void WINAPI serviceMain(DWORD argc, LPTSTR *argv);
 	void WINAPI serviceCtrlHandler(DWORD CtrlCode);
 	DWORD WINAPI serviceWorkerThread(LPVOID lpParam);
-	
-	WindowsServiceWrapper();
-
 
 public:
+	static void WINAPI staticServiceCtrlHandler(DWORD CtrlCode);
 
 	~WindowsServiceWrapper();
 

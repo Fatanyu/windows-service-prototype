@@ -24,6 +24,9 @@
     <ClInclude Include="WindowsServiceWrapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ServiceControlManagerWrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -33,6 +36,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="WindowsServiceWrapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ServiceControlManagerWrapper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

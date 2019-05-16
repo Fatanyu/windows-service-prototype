@@ -156,6 +156,7 @@
   <ItemGroup>
     <ClInclude Include="IServiceWrapper.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="ServiceControlManagerWrapper.h" />
     <ClInclude Include="WindowsServiceWrapper.h" />
   </ItemGroup>
   <ItemGroup>
@@ -166,6 +167,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="ServiceControlManagerWrapper.cpp" />
     <ClCompile Include="WindowsServiceWrapper.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

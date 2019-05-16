@@ -10,6 +10,7 @@ WindowsServiceWrapper::WindowsServiceWrapper()
 WindowsServiceWrapper::~WindowsServiceWrapper()
 {
 	WindowsServiceWrapper::s_singletonInstance = nullptr;
+	delete m_serviceControlManagementWrapper;
 }
 
 DWORD WindowsServiceWrapper::start()
@@ -28,26 +29,19 @@ DWORD WindowsServiceWrapper::start()
 void WINAPI WindowsServiceWrapper::serviceMain(DWORD argc, LPTSTR * argv)
 {
 	// Register our service control handler with the SCM
-	m_statusHandle = RegisterServiceCtrlHandler(s_serviceName, staticServiceCtrlHandler);
+	m_serviceControlManagementWrapper = new ServiceControlManagerWrapper(RegisterServiceCtrlHandler(s_serviceName, staticServiceCtrlHandler));
 
-	if (m_statusHandle == nullptr)
+//	if (m_statusHandle == nullptr)
+	if (!this->m_serviceControlManagementWrapper->isConnectedToSCM())
 	{
+		//TODO error
 		return;
 	}
 
 	// Tell the service controller we are starting
-	SecureZeroMemory(&m_serviceStatus, sizeof(m_serviceStatus));
-	m_serviceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
-	m_serviceStatus.dwControlsAccepted = 0;
-	m_serviceStatus.dwCurrentState = SERVICE_START_PENDING;
-	m_serviceStatus.dwWin32ExitCode = 0;
-	m_serviceStatus.dwServiceSpecificExitCode = 0;
-	m_serviceStatus.dwCheckPoint = 0;
-
-	if (SetServiceStatus(m_statusHandle, &m_serviceStatus) == false)
+	if (!this->m_serviceControlManagementWrapper->sendServiceStatusToSCM(ServiceStateSCM::START_PENDING))
 	{
-		OutputDebugString(_T(
-			"My Sample Service: ServiceMain: SetServiceStatus returned error"));
+		//TODO error
 	}
 
 	/*
@@ -60,37 +54,20 @@ void WINAPI WindowsServiceWrapper::serviceMain(DWORD argc, LPTSTR * argv)
 	{
 		// Error creating event
 		// Tell service controller we are stopped and exit
-		m_serviceStatus.dwControlsAccepted = 0;
-		m_serviceStatus.dwCurrentState = SERVICE_STOPPED;
-		m_serviceStatus.dwWin32ExitCode = GetLastError();
-		m_serviceStatus.dwCheckPoint = 1;
-
-		if (SetServiceStatus(m_statusHandle, &m_serviceStatus) == false)
-		{
-			OutputDebugString(_T(
-				"My Sample Service: ServiceMain: SetServiceStatus returned error"));
-		}
-		return;
+		this->m_serviceControlManagementWrapper->sendServiceStatusToSCM(ServiceStateSCM::STOPPED);
 	}
 
 	// Tell the service controller we are started
-	m_serviceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
-	m_serviceStatus.dwCurrentState = SERVICE_RUNNING;
-	m_serviceStatus.dwWin32ExitCode = 0;
-	m_serviceStatus.dwCheckPoint = 0;
-
-	if (SetServiceStatus(m_statusHandle, &m_serviceStatus) == false)
+	if (!this->m_serviceControlManagementWrapper->sendServiceStatusToSCM(ServiceStateSCM::RUNNING))
 	{
-		OutputDebugString(_T(
-			"My Sample Service: ServiceMain: SetServiceStatus returned error"));
+		//TODO error
 	}
 
-	// Start a thread that will perform the main task of the service
-	//HANDLE hThread = CreateThread(NULL, 0, WindowsServiceWrapper::staticServiceWorkerThread, NULL, 0, NULL);
 
+	// Start a thread that will perform the main task of the service
 	std::thread workerThread(&WindowsServiceWrapper::serviceWorkerThread, this, nullptr);
 	// Wait until our worker thread exits signaling that the service needs to stop
-	//WaitForSingleObject(hThread, INFINITE);
+
 	workerThread.join();
 
 	/*
@@ -100,18 +77,11 @@ void WINAPI WindowsServiceWrapper::serviceMain(DWORD argc, LPTSTR * argv)
 	CloseHandle(s_serviceStopEvent);
 
 	// Tell the service controller we are stopped
-	m_serviceStatus.dwControlsAccepted = 0;
-	m_serviceStatus.dwCurrentState = SERVICE_STOPPED;
-	m_serviceStatus.dwWin32ExitCode = 0;
-	m_serviceStatus.dwCheckPoint = 3;
-
-	if (SetServiceStatus(m_statusHandle, &m_serviceStatus) == false)
+	if (!this->m_serviceControlManagementWrapper->sendServiceStatusToSCM(ServiceStateSCM::STOPPED))
 	{
-		OutputDebugString(_T(
-			"My Sample Service: ServiceMain: SetServiceStatus returned error"));
+		//TODO error
 	}
 
-	//std::cout << "ServiceMain() ended OK" << std::endl;
 	return;
 }
 
@@ -120,23 +90,13 @@ void WINAPI WindowsServiceWrapper::serviceCtrlHandler(DWORD CtrlCode)
 	switch (CtrlCode)
 	{
 	case SERVICE_CONTROL_STOP:
-
-		if (m_serviceStatus.dwCurrentState != SERVICE_RUNNING)
-			break;
-
 		/*
 		 * Perform tasks necessary to stop the service here
 		 */
 
-		m_serviceStatus.dwControlsAccepted = 0;
-		m_serviceStatus.dwCurrentState = SERVICE_STOP_PENDING;
-		m_serviceStatus.dwWin32ExitCode = 0;
-		m_serviceStatus.dwCheckPoint = 4;
-
-		if (SetServiceStatus(m_statusHandle, &m_serviceStatus) == false)
+		if (!this->m_serviceControlManagementWrapper->sendServiceStatusToSCM(ServiceStateSCM::STOP_PENDING))
 		{
-			OutputDebugString(_T(
-				"My Sample Service: ServiceCtrlHandler: SetServiceStatus returned error"));
+			//TODO error
 		}
 
 		// This will signal the worker thread to start shutting down
